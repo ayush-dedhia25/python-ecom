@@ -1,0 +1,14 @@
+# Cache directories
+__pycache__
+
+# Manifest files
+Pipfile.lock
+
+# Database files
+*.db
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.prod
