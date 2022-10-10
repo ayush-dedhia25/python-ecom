@@ -2,10 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from ..database.connection import get_db
-from ..database.models import User
-from ..schemas import UserIn, UserOut, UserEmailUp, UserNameUp, SessionUser
-from ..utils.jwt import get_current_user 
+from ..database import get_db, User
+from ..schemas import UserIn, UserOut, UserEmailUp, UserNameUp, SessionUser, UpdateInfo
+from ..utils import get_current_user
 
 router = APIRouter(prefix = "/account", tags = ["account"])
 
@@ -34,7 +33,7 @@ def get_account(curr_user: SessionUser = Depends(get_current_user), db: Session 
    else:
       return user
 
-@router.put("/me/update/email")
+@router.put("/me/update/email", response_model = UpdateInfo)
 def update_email(
    acc: UserEmailUp,
    curr_user: SessionUser = Depends(get_current_user),
@@ -52,11 +51,11 @@ def update_email(
          raise HTTPException(status_code = 409, detail = "Email is already taken!")
       else:
          # Update the email property
-         setattr(user, "email", acc.email)
+         user.email = acc.email
          db.commit()
-         return { "status_code": 200, "detail": "Email updated!" }
+         return UpdateInfo(status_code = 200, detail = "Your email is updated! Please verify it!")
 
-@router.put("/me/update/name")
+@router.put("/me/update/name", response_model = UpdateInfo)
 def update_name(
    acc: UserNameUp,
    curr_user: SessionUser = Depends(get_current_user),
@@ -68,6 +67,20 @@ def update_name(
       raise HTTPException(status_code = 404, detail = "Account missing!")
    else:
       # Update the name property
-      setattr(user, "name", acc.name)
+      user.name = acc.name
       db.commit()
-      return { "status_code": 200, "detail": "Name updated!" }
+      return UpdateInfo(status_code = 200, detail = "Your name is updated!")
+
+@router.put("/verify", response_model = UpdateInfo)
+def update_name(curr_user: SessionUser = Depends(get_current_user), db: Session = Depends(get_db)):
+   """ Verify the user's account. """
+   user = db.query(User).get(curr_user.ID)
+   if not user:
+      raise HTTPException(status_code = 404, detail = "Account missing!")
+   else:
+      if user.is_verified:
+         raise HTTPException(status_code = 400, detail = "Your account is already verified!")
+      else:
+         user.is_verified = True
+         db.commit()
+         return UpdateInfo(status_code = 200, detail = "Your account is now verified!")

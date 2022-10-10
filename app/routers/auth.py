@@ -1,14 +1,13 @@
 from pydantic import BaseModel, EmailStr, Field
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..database.connection import get_db
-from ..database.models import User
+from ..database import get_db, User
 from ..schemas import SessionUser
-from ..utils import jwt, hashing
+from ..utils import cmp_str, create_access_token
 
 class AuthIn(BaseModel):
    email: EmailStr = Field(...)
-   password: str = Field(...)
+   password: str = Field(..., min_length = 6)
 
 router = APIRouter(prefix = "/auth", tags = ["authentication"])
 
@@ -19,9 +18,9 @@ def login_user(usr: AuthIn, db: Session = Depends(get_db)):
       raise HTTPException(status_code = 404, detail = "User not found!")
    else:
       salt, password = user.enc, user.password
-      if hashing.cmp_str(salt, password, usr.password):
+      if cmp_str(salt, password, usr.password):
          session_user = SessionUser(ID = user.ID, name = user.name, email = user.email)
-         access_token = jwt.create_access_token(session_user.dict())
+         access_token = create_access_token(session_user.dict())
          return { "access_token": access_token }
       else:
          raise HTTPException(status_code = 403, detail = "Invalid credentials!")

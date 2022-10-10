@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
-from ..database.connection import get_db
-from ..database.models import User, Address
+from ..database import get_db, User, Address
 from ..schemas import AddressIn, AddressOut
 
 # Router to handle '/address' routings.
